@@ -1,2 +1,8 @@
-./Path Visualizer/.venv/
-./Path Visualizer/data/
+# Ignore VENV
+Path Visualizer/.venv/
+
+# Ignore everything INSIDE the data folder
+Path Visualizer/data/*
+# But not the folder itself, or the readme
+!Path Visualizer/data/ 
+!Path Visualizer/data/info.txt

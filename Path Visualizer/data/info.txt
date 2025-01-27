@@ -1,0 +1,23 @@
+This folder is for data subfolders to go into to be processed.
+
+Folders structure is as follows, for example:
+./data
+│   info.txt
+│
+├───node1
+│       DATA0.CSV
+│       DATA1.CSV
+│       DATA2.CSV
+│
+├───node2
+│       DATA0.CSV
+│       DATA1.CSV
+│       DATA2.CSV
+│       DATA3.CSV
+│
+└───node3
+        DATA0.CSV
+        DATA1.CSV
+        DATA2.CSV
+        DATA3.CSV
+        DATA4.CSV
