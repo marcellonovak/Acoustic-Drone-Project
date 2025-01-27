@@ -1,0 +1,6 @@
+0,0123473E6A1FB351EE,Predictions,background: 0.99609,drone: 0.00000,34.61463000,-112.45115000,0-00-00 99:99:99,0.00,Invalid,DSP 273 ms,Inference 9 ms,Anomaly 0 ms,0.03,
+1,0123473E6A1FB351EE,Predictions,background: 0.99609,drone: 0.00391,34.61463000,-112.45115000,0-00-00 99:99:99,0.00,Invalid,DSP 273 ms,Inference 10 ms,Anomaly 0 ms,0.03,
+2,0123473E6A1FB351EE,Predictions,background: 0.99609,drone: 0.00391,34.61463000,-112.45115000,0-00-00 99:99:99,0.00,Invalid,DSP 273 ms,Inference 9 ms,Anomaly 0 ms,0.03,
+3,0123473E6A1FB351EE,Predictions,background: 0.99609,drone: 0.00391,34.61463000,-112.45115000,0-00-00 23:59:43,0.00,Invalid,DSP 273 ms,Inference 9 ms,Anomaly 0 ms,0.03,
+4,0123473E6A1FB351EE,Predictions,background: 0.99609,drone: 0.00391,34.61463000,-112.45115000,2080-01-05 23:59:44,0.00,Invalid,DSP 273 ms,Inference 9 ms,Anomaly 0 ms,0.03,
+5,0123473E6A1FB351EE,Predictions,background: 0.99609,drone: 0.00391,34.61463000,-112.45115000,2080-01-05 23:59:44,0.00,Invalid,DSP 273 ms,Inference 9 ms,Anomaly 0 ms,0.05,
