@@ -46,11 +46,11 @@ The `data` folder is used to store subfolders containing the CSV files to be pro
 │       DATA3.CSV
 │
 └───node3
-        DATA0.CSV
-        DATA1.CSV
-        DATA2.CSV
-        DATA3.CSV
-        DATA4.CSV
+│       DATA0.CSV
+│       DATA1.CSV
+│       DATA2.CSV
+│       DATA3.CSV
+└─      DATA4.CSV
 ```
 
 - Each subfolder (e.g., `node1`, `node2`) represents a data group.
