@@ -8,7 +8,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.widgets import Button, CheckButtons
+from matplotlib.widgets import Button
 from mpl_toolkits.mplot3d import Axes3D
 import pandas as pd
 
@@ -85,7 +85,7 @@ def load_folder(folder_path):
     Loads all CSV files from the specified folder, updates globals,
     and plots the first CSV if available.
     """
-    global dataframes, current_index, total_files, folder_selected
+    global dataframes, current_index, total_files, folder_selected, current_scatter, cbar, page_text
 
     # Find all CSV files in the folder
     csv_pattern = os.path.join(folder_path, "*.CSV")
@@ -105,7 +105,10 @@ def load_folder(folder_path):
     folder_selected = folder_path
 
     # Clear the 3D axes and reset
-    ax.clear()
+    ax.clear()  # Clear the axes
+    current_scatter = None  # Reset the scatter plot reference
+    cbar = None  # Reset the colorbar reference
+    page_text = None  # Reset the page text reference
 
     # If no files were loaded, show a default message
     if total_files == 0:
@@ -136,9 +139,15 @@ def plot_csv(index):
     file_path = os.path.join(folder_selected, file_name)
     df = read_and_prepare_csv(file_path)
 
-    # Remove old scatter
+    # Clear the previous scatter plot
     if current_scatter is not None:
         current_scatter.remove()
+        current_scatter = None
+
+    # Clear the previous colorbar if it exists
+    if cbar is not None:
+        cbar.remove()
+        cbar = None
 
     # Min/Max for coloring
     drone_min = df["drone"].min()
@@ -173,14 +182,11 @@ def plot_csv(index):
     ax.set_ylabel("Latitude")
     ax.set_zlabel("Stack Index")
 
-    # Reuse or create colorbar
+    # Create new colorbar
     if cbar is None:
         cbar = fig.colorbar(sc, ax=ax, pad=0.1, shrink=0.6)
     else:
-        cbar.mappable.set_clim(drone_min, drone_max)
         cbar.update_normal(sc)
-
-    # Update colorbar ticks and labels
     cbar.set_ticks([drone_min, drone_max])
     cbar.set_ticklabels([f"Min ({drone_min})", f"Max ({drone_max})"])
     cbar.set_label("Drone Data (Red = Low, Green = High)")
@@ -202,6 +208,16 @@ def plot_csv(index):
     plt.draw()
 
 
+def on_toggle_invalid_points(event):
+    """
+    Toggles the inclusion of invalid points in the plot.
+    """
+    global show_invalid_points
+    show_invalid_points = not show_invalid_points
+    print(f"Show Invalid Points: {show_invalid_points}")
+    plot_csv(current_index)
+
+
 def on_key_press(event):
     """
     Left/Right arrow to flip among CSVs
@@ -218,7 +234,7 @@ def on_key_press(event):
 
 
 ###############################################################################
-# 4) BUTTONS AND CHECKBOXES
+# 4) BUTTONS AND TOGGLE LOGIC
 ###############################################################################
 def on_browse_clicked(event):
     """
@@ -240,9 +256,9 @@ def on_browse_clicked(event):
         print("Folder selection canceled.")
         return
 
-    # Normalize paths
-    folder_selected_temp = os.path.normpath(os.path.abspath(folder_selected_temp))
-    data_dir = os.path.normpath(os.path.abspath(DATA_DIR))
+    # Normalize paths and convert to lowercase for comparison
+    folder_selected_temp = os.path.normpath(os.path.abspath(folder_selected_temp)).lower()
+    data_dir = os.path.normpath(os.path.abspath(DATA_DIR)).lower()
 
     # Debug: Print resolved paths
     print(f"Resolved Selected Folder: {folder_selected_temp}")
@@ -261,17 +277,6 @@ def on_browse_clicked(event):
     load_folder(folder_selected)
 
 
-def on_checkbox_clicked(label):
-    """
-    Toggles the inclusion of invalid points in the plot.
-    """
-    global show_invalid_points
-    if label == "Show Invalid Points":
-        show_invalid_points = not show_invalid_points
-        print(f"Show Invalid Points: {show_invalid_points}")
-        plot_csv(current_index)
-
-
 ###############################################################################
 # 5) MAIN FUNCTION
 ###############################################################################
@@ -283,13 +288,15 @@ def main():
 
     fig.canvas.mpl_connect('key_press_event', on_key_press)
 
+    # Add Browse Subfolder button
     button_ax = fig.add_axes([0.6, 0.92, 0.15, 0.06])
     browse_button = Button(button_ax, "Browse Subfolder")
     browse_button.on_clicked(on_browse_clicked)
 
-    checkbox_ax = fig.add_axes([0.8, 0.92, 0.15, 0.06])
-    check = CheckButtons(checkbox_ax, ["Show Invalid Points"], [False])
-    check.on_clicked(on_checkbox_clicked)
+    # Add Toggle Invalid Points button
+    toggle_ax = fig.add_axes([0.8, 0.92, 0.15, 0.06])
+    toggle_button = Button(toggle_ax, "Toggle Invalid Points")
+    toggle_button.on_clicked(on_toggle_invalid_points)
 
     plt.subplots_adjust(left=0.1, right=0.9, top=0.85, bottom=0.1)
     plt.show()

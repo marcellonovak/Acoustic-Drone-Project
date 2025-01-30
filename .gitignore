@@ -1,8 +1,11 @@
 # Ignore VENV
-Path Visualizer/.venv/
+Path Visualizer Prototype/.venv/
+Path Prob Visual/.venv/
 
-# Ignore everything INSIDE the data folder
-Path Visualizer/data/*
-# But not the folder itself, or the readme
-!Path Visualizer/data/ 
-!Path Visualizer/data/info.txt
+# Ignore everything INSIDE the data folders
+Path Visualizer Prototype/data/*
+Path Prob Visual/data/*
+
+# But not the folders themselves
+!Path Visualizer Prototype/data/ 
+!Path Prob Visual/data/
