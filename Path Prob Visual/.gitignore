@@ -12,3 +12,6 @@ debug/
 __pycache__/
 *.pyc
 *.pyo
+
+# Ignore png images
+*.png
