@@ -13,6 +13,7 @@ from mpl_toolkits.mplot3d import Axes3D  # Import for 3D plotting
 print("Processing node CSV files...")
 
 # Path to the main data folder
+# data_folder = "data/2025-01-23 09-25-36"
 data_folder = "data/2025-01-23 09-25-36"
 
 # Find all folders starting with "node" dynamically
@@ -69,8 +70,13 @@ node_data.fillna(0, inplace=True)
 # ======================== 2. PROCESS DRONE DATA ========================
 print("Processing drone data...")
 
-# Path to drone bin file
-bin_file = os.path.join(data_folder, "drone", "2025-01-23 09-25-36.bin")
+# Extract datetime from folder name
+folder_datetime = os.path.basename(data_folder)  # e.g., "2025-01-23 09-25-36"
+
+# Dynamically set bin file path based on detected folder name
+bin_file = os.path.join(data_folder, "drone", f"{folder_datetime}.bin")
+
+print(f"Looking for bin file: {bin_file}")  # Debugging print
 
 # Ensure the file exists
 if not os.path.exists(bin_file):
@@ -143,7 +149,6 @@ print(f"Data successfully merged and saved to {output_file}")
 node_columns = [col for col in df_final.columns if col.startswith("node")]
 
 # Extract datetime from folder name
-folder_datetime = os.path.basename(data_folder)
 print(f"Using datetime for plot: {folder_datetime}")  # Debugging print
 
 # Ensure we have necessary GPS and node data
