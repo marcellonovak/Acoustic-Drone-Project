@@ -160,7 +160,7 @@ df_final = pd.merge_asof(df_final.sort_values("Timestamp"), df_drone.sort_values
 
 
 # ======================== 4. SAVE TO CSV ========================
-output_file = os.path.join(data_folder, "flight_data.csv")
+output_file = os.path.join(data_folder, "2D_flight_data.csv")
 df_final.to_csv(output_file, index=False)
 
 print(f"Data successfully merged and saved to {output_file}")

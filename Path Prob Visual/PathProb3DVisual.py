@@ -14,7 +14,7 @@ print("Processing node CSV files...")
 
 # Path to the main data folder
 # data_folder = "data/2025-01-23 09-25-36"
-data_folder = "data/2025-01-23 09-25-"
+data_folder = "data/2025-01-23 09-25-36"
 
 # Find all folders starting with "node" dynamically
 node_folders = [folder for folder in os.listdir(data_folder) if folder.startswith("node")]
@@ -137,7 +137,7 @@ df_final = pd.merge_asof(df_final.sort_values("Timestamp"), df_drone.sort_values
 
 
 # ======================== 4. SAVE TO CSV ========================
-output_file = os.path.join(data_folder, "merged_flight_data_fixed.csv")
+output_file = os.path.join(data_folder, "3D_flight_data.csv")
 df_final.to_csv(output_file, index=False)
 
 print(f"Data successfully merged and saved to {output_file}")
