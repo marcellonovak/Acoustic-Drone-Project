@@ -160,7 +160,7 @@ df_final = pd.merge_asof(df_final.sort_values("Timestamp"), df_drone.sort_values
 
 
 # ======================== 4. SAVE TO CSV ========================
-output_file = os.path.join(data_folder, "merged_flight_data_fixed.csv")
+output_file = os.path.join(data_folder, "flight_data.csv")
 df_final.to_csv(output_file, index=False)
 
 print(f"Data successfully merged and saved to {output_file}")
@@ -171,9 +171,9 @@ print(f"Using datetime for plot: {folder_datetime}")  # Debugging print
 
 fig, ax = plt.subplots(figsize=(10, 7))
 
-# Plot each node's average location as a blue 'X'
+# Plot each node's average location as an 'X'
 for node, (avg_lat, avg_lon) in node_avg_locations.items():
-    ax.scatter(avg_lon, avg_lat, marker="x", s=150, label=f"{node} Avg Location", zorder=2)
+    ax.scatter(avg_lon, avg_lat, marker="x", s=150, linewidths=3, label=f"{node} Avg Location", zorder=2)
 
 # Compute max node value per timestamp for color mapping
 node_columns = [col for col in df_final.columns if col.startswith("node")]

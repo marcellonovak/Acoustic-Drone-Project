@@ -14,7 +14,7 @@ print("Processing node CSV files...")
 
 # Path to the main data folder
 # data_folder = "data/2025-01-23 09-25-36"
-data_folder = "data/2025-01-23 09-25-36"
+data_folder = "data/2025-01-23 09-25-"
 
 # Find all folders starting with "node" dynamically
 node_folders = [folder for folder in os.listdir(data_folder) if folder.startswith("node")]
