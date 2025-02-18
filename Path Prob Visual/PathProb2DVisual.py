@@ -1,26 +1,30 @@
 import os
 import re
 from datetime import datetime, timedelta
-from pymavlink import mavutil
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import Normalize
 from matplotlib.cm import ScalarMappable
+from pymavlink import mavutil
+from pyproj import Transformer
 
-# ======================== 1. PROCESS NODE DATA ========================
-print("Processing node CSV files...")
 
-# Path to the main data folder
+# ======================== 1. CHECK DATA FOLDER EXISTENCE ========================
 data_folder = "data/2025-01-23 09-25-36"
+if not os.path.exists(data_folder):
+    print(f"Error: Data folder '{data_folder}' not found!")
+    exit()
+
+
+# ======================== 2. PROCESS NODE DATA ========================
+print("Processing node CSV files...")
 
 # Find all folders starting with "node" dynamically
 node_folders = [folder for folder in os.listdir(data_folder) if folder.startswith("node")]
 
-# Initialize an empty DataFrame for node data
+# Initialize a node dataframe and a lat/lon dictionary
 node_data = pd.DataFrame()
-
-# Dictionary to store each node’s average lat/lon
 node_avg_locations = {}
 
 # Function to extract 'drone' probability value from a text field
@@ -43,17 +47,13 @@ for folder in node_folders:
             file_path = os.path.join(folder_path, file)
             print(f"Processing {file_path}...")
 
-            # Read CSV
+            # Read CSV, select relevant columns (Timestamp, DroneProb, Status, Latitude, Longitude)
             df = pd.read_csv(file_path, header=None, dtype=str, encoding="utf-8")
-
-            # Select relevant columns (Timestamp, DroneProb, Status, Latitude, Longitude)
             df = df.iloc[:, [7, 4, 9, 5, 6]].copy()
             df.columns = ["Timestamp", "DroneProb", "Status", "Latitude", "Longitude"]
 
-            # Convert Timestamp to datetime
+            # Convert timestamp to datetime, convert lat/lon to float
             df["Timestamp"] = pd.to_datetime(df["Timestamp"], errors="coerce")
-
-            # Convert Latitude and Longitude to float
             df["Latitude"] = pd.to_numeric(df["Latitude"], errors="coerce")
             df["Longitude"] = pd.to_numeric(df["Longitude"], errors="coerce")
 
@@ -61,19 +61,11 @@ for folder in node_folders:
             df = df[~df["Status"].str.contains("Invalid", na=False)]
             df = df[df["Status"].str.contains("Valid", na=False)]
 
-            # **DEBUG: Print first few rows of valid lat/lon data**
-            print(f"\nValid Latitude/Longitude for {node_name}:")
-            print(df[["Latitude", "Longitude"]].head(5))  # Print first 5 rows
-
-            # Extract drone probability value
+            # Extract drone probability value, store lat/lon for this node
             df[node_name] = df["DroneProb"].apply(extract_drone_value)
-
-            # Store valid ground lat/lon for averaging for this specific node
             node_latitudes.extend(df["Latitude"].dropna().tolist())
             node_longitudes.extend(df["Longitude"].dropna().tolist())
-
-            # Keep only Timestamp & node value
-            df = df[["Timestamp", node_name]]
+            df = df[["Timestamp", node_name]]  # Keep only timestamp and node prob
 
             # Merge into main node DataFrame
             if node_data.empty:
@@ -88,25 +80,24 @@ for folder in node_folders:
         node_avg_locations[node_name] = (avg_lat, avg_lon)
 
         # **DEBUG: Print computed averages**
-        print(f"\nComputed Averages for {node_name}: Latitude = {avg_lat}, Longitude = {avg_lon}\n")
+        print(f"Computed Averages for {node_name}: Latitude = {avg_lat}, Longitude = {avg_lon}\n")
 
 # Ensure node data is sorted by timestamp, fill empty cells with 0's
 node_data = node_data.sort_values("Timestamp")
 node_data.fillna(0, inplace=True)
 
 
-# ======================== 2. PROCESS DRONE DATA ========================
+# ======================== 3. PROCESS DRONE DATA ========================
 print("Processing drone data...")
 
 # Extract datetime from folder name
-folder_datetime = os.path.basename(data_folder)  # e.g., "2025-01-23 09-25-36"
+folder_datetime = os.path.basename(data_folder)
 
 # Dynamically set bin file path based on detected folder name
 bin_file = os.path.join(data_folder, "drone", f"{folder_datetime}.bin")
 
-print(f"Looking for bin file: {bin_file}")  # Debugging print
-
 # Ensure the file exists
+print(f"Looking for bin file: {bin_file}")  # Debugging print
 if not os.path.exists(bin_file):
     print(f"Error: Drone log file '{bin_file}' not found!")
     exit()
@@ -144,70 +135,61 @@ df_drone["Timestamp"] = df_drone.apply(
     axis=1
 )
 
-# Convert lat/lon (fix: remove incorrect division)
+# Convert lat/lon
 df_drone["Latitude"] = pd.to_numeric(df_drone["Lat"], errors="coerce")
 df_drone["Longitude"] = pd.to_numeric(df_drone["Lng"], errors="coerce")
 
-# ======================== 3. MERGE DATA (FIRST FIT NODE DATA, THEN DRONE) ========================
+# Set origin as the first valid drone data point
+origin_lat = df_drone["Latitude"].iloc[0]
+origin_lon = df_drone["Longitude"].iloc[0]
+
+# Convert lat/lon to meters using pyproj
+transformer = Transformer.from_crs("EPSG:4326", "EPSG:3857", always_xy=True)
+df_drone["X_meters"], df_drone["Y_meters"] = transformer.transform(df_drone["Longitude"], df_drone["Latitude"])
+origin_x, origin_y = transformer.transform(origin_lon, origin_lat)
+
+# Adjust coordinates so the first point is the origin
+df_drone["X_meters"] -= origin_x
+df_drone["Y_meters"] -= origin_y
+
+
+# ======================== 4. MERGE DATA ========================
 print("Merging node and drone data...")
 
-# Merge node data first (ensuring timestamps are matched correctly)
-df_final = node_data.copy()
-
-# Merge drone data by finding the closest timestamp for each node entry
-df_final = pd.merge_asof(df_final.sort_values("Timestamp"), df_drone.sort_values("Timestamp"),
+df_final = pd.merge_asof(node_data.sort_values("Timestamp"), df_drone.sort_values("Timestamp"),
                          on="Timestamp", direction="nearest")
 
-
-# ======================== 4. SAVE TO CSV ========================
-output_file = os.path.join(data_folder, "2D_flight_data.csv")
-df_final.to_csv(output_file, index=False)
-
-print(f"Data successfully merged and saved to {output_file}")
+# Compute MaxNode only if node columns exist
+node_columns = [col for col in df_final.columns if col.startswith("node")]
+df_final["MaxNode"] = df_final[node_columns].max(axis=1) if node_columns else 0
 
 
 # ======================== 5. PLOT THE DATA (2D) ========================
-print(f"Using datetime for plot: {folder_datetime}")  # Debugging print
+print(f"Using datetime for plot: {folder_datetime}")
 
 fig, ax = plt.subplots(figsize=(10, 7))
 
-# Plot each node's average location as an 'X'
-for node, (avg_lat, avg_lon) in node_avg_locations.items():
-    ax.scatter(avg_lon, avg_lat, marker="x", s=150, linewidths=3, label=f"{node} Avg Location", zorder=2)
+# Plot each node's average location as an 'X' under both lines
+for i, (node, (avg_lat, avg_lon)) in enumerate(node_avg_locations.items()):
+    x_m, y_m = transformer.transform(avg_lon, avg_lat)
+    x_m -= origin_x
+    y_m -= origin_y
+    ax.scatter(x_m, y_m, marker="x", s=150, linewidths=3, label=f"{node} Avg Location", zorder=1)
 
-# Compute max node value per timestamp for color mapping
-node_columns = [col for col in df_final.columns if col.startswith("node")]
-df_final["MaxNode"] = df_final[node_columns].max(axis=1)
+# Plot black line UNDER the drone points
+ax.plot(df_final["X_meters"], df_final["Y_meters"], color="black", linewidth=1, zorder=2)
 
-# Get overall min and max for color normalization
-min_val = df_final["MaxNode"].min()
-max_val = df_final["MaxNode"].max()
+# Plot drone path points
+sc = ax.scatter(df_final["X_meters"], df_final["Y_meters"], c=df_final["MaxNode"], cmap="RdYlGn",
+                norm=Normalize(vmin=df_final["MaxNode"].min(), vmax=df_final["MaxNode"].max()),
+                marker="o", s=15, label="Drone Path", zorder=3)
 
-# Prevent division by zero
-if min_val == max_val:
-    min_val, max_val = 0, 1
-
-norm = Normalize(vmin=min_val, vmax=max_val)
-cmap = plt.get_cmap("RdYlGn")
-
-# Plot drone path with color mapping
-sc = ax.scatter(
-    df_final["Longitude"], df_final["Latitude"], 
-    c=df_final["MaxNode"], cmap=cmap, norm=norm, 
-    marker="o", s=15, label="Drone Path", zorder=3
-)
-
-# Add colorbar
-sm = ScalarMappable(norm=norm, cmap=cmap)
-sm.set_array(df_final["MaxNode"])
-cbar = fig.colorbar(sm, ax=ax, pad=0.01)
-cbar.set_label("Scaled Node Values")
-
-# Labels and title
-ax.set_xlabel("Longitude")
-ax.set_ylabel("Latitude")
+fig.colorbar(sc, ax=ax, pad=0.01).set_label("Scaled Node Values")
+ax.set_xlabel("Latitude Distance (meters)")
+ax.set_ylabel("Longitude Distance (meters)")
 ax.set_title(f"2D Drone Data for: {folder_datetime}")
 ax.legend()
+ax.grid(True)
 
 plt.savefig(f'flight_2D_{folder_datetime}.png')
 plt.show()
